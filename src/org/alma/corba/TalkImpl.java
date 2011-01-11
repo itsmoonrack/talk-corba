@@ -10,6 +10,7 @@ import org.alma.corba.modele.MessageComponent;
 import org.alma.corba.vue.SwingClient;
 import org.omg.CORBA.ORB;
 
+import MTalk.Talk;
 import MTalk.TalkHelper;
 import MTalk.TalkOperations;
 
@@ -36,7 +37,7 @@ public class TalkImpl implements TalkOperations {
 		mMessageComp.put(numConvSideB, messageComp);
 
 		org.omg.CORBA.Object obj = mORB.string_to_object(talkIor);
-		final MTalk.Talk talkDistant = TalkHelper.narrow(obj);
+		final Talk talkDistant = TalkHelper.narrow(obj);
 
 		SwingUtilities.invokeLater(new Runnable() {
 			@Override

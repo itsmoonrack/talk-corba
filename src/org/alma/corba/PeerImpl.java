@@ -82,9 +82,9 @@ public class PeerImpl implements PeerOperations {
 						talk = new TalkImpl(mORB, mUserName);
 					}
 					
-					TalkPOATie convTie = new TalkPOATie(talk);
-					Talk monTalk = convTie._this(mORB);
-					String monTalkIOR = mORB.object_to_string(monTalk);
+					final TalkPOATie convTie = new TalkPOATie(talk);
+					final Talk monTalk = convTie._this(mORB);
+					final String monTalkIOR = mORB.object_to_string(monTalk);
 
 					// On valide aupres du talk distant
 					talkDistant.accept(mConversationNumber, numConvSideA, monTalkIOR);
@@ -96,12 +96,11 @@ public class PeerImpl implements PeerOperations {
 					// " debute avec vous la conversation " + convIncr);
 					mConversationNumber++;
 
-					final TalkOperations finalTalk = talk;
 					// On ouvre une une new fenetre
 					SwingUtilities.invokeLater(new Runnable() {
 						@Override
 						public void run() {
-							new SwingClient(messageComp, finalTalk, mConversationNumber)
+							new SwingClient(messageComp, monTalk, mConversationNumber)
 									.setVisible(true);
 						}
 					});

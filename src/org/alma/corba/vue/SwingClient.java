@@ -22,16 +22,16 @@ import javax.swing.border.LineBorder;
 
 import org.alma.corba.modele.MessageComponent;
 
-import MTalk.TalkOperations;
+import MTalk.Talk;
 
 public class SwingClient extends JFrame {
 	private static final long serialVersionUID = 1L;
 	private final JTextArea mChatArea;
 	private final MessageComponent mConversation;
-	private TalkOperations mTalkDistant;
+	private Talk mTalkDistant;
 	private Short mConversationNumberDistant;
 
-	public SwingClient(MessageComponent messageComp, TalkOperations talkDistant,
+	public SwingClient(MessageComponent messageComp, Talk talkDistant,
 			short numConvSideA) {
 		setTitle("Talk : ");
 		this.mConversation = messageComp;
