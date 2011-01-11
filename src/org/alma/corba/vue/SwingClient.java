@@ -33,7 +33,6 @@ public class SwingClient extends JFrame {
 	private static final long serialVersionUID = 1L;
 	private final JTextArea textArea ;
 	private final  MessageComponent conv;
-	private String correspondantName;
 	private String sontTalkIor;
 	private Short numConvSideA;
 
@@ -99,7 +98,7 @@ public class SwingClient extends JFrame {
 
 	private void sendMessage(String message){
 		if (!message.equals("")){
-			conv.addMessage(correspondantName, message);
+			conv.addMessage("Moi", message);
 			textArea.setText("");
 			
 			final ORB orb = PeerImpl.orb;
