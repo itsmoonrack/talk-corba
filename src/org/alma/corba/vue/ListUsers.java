@@ -156,6 +156,7 @@ public class ListUsers extends JFrame {
 		public void windowClosing(WindowEvent e) {
 			try {
 				mEasyNaming.unbind_from_string("/talk/" + mUserName);
+				mPeerImpl.killAll();
 			} catch (Exception e1) {
 				e1.printStackTrace();
 			}
