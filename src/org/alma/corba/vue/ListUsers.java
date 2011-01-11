@@ -40,13 +40,13 @@ import MTalk.TalkPOATie;
 public class ListUsers extends JFrame {
 	private static final long serialVersionUID = 1L;
 
-	private JList list;
-	private String userName;
-	private PeerImpl peerImpl;
+	private JList mList;
+	private String mUserName;
+	private PeerImpl mPeerImpl;
 
-	private Short nbConv = 0;
+	private Short mConversationNumber = 0;
 
-	private EasyNaming easyNaming;
+	private EasyNaming mEasyNaming;
 	private ORB orb;
 
 	public ListUsers(String[] args) {
@@ -56,7 +56,7 @@ public class ListUsers extends JFrame {
 
 		try {
 			orb = ORB.init(args, null);
-			userName = JOptionPane.showInputDialog(null, "Nom d'utilisateur?",
+			mUserName = JOptionPane.showInputDialog(null, "Nom d'utilisateur?",
 					"User");
 
 			// On enregistre l'utilisateur
@@ -78,7 +78,7 @@ public class ListUsers extends JFrame {
 
 			ior = inFromUserFile.readLine();
 
-			easyNaming = new EasyNaming(orb, ior);
+			mEasyNaming = new EasyNaming(orb, ior);
 
 			// On met le orb.run() dans un thread, car il est bloquant
 			Runnable r = new Runnable() {
@@ -96,13 +96,13 @@ public class ListUsers extends JFrame {
 			runOrb.start();
 
 			// Creation du peer local
-			peerImpl = new PeerImpl(userName, orb);
-			PeerPOATie convTie = new PeerPOATie(peerImpl);
+			mPeerImpl = new PeerImpl(mUserName, orb);
+			PeerPOATie convTie = new PeerPOATie(mPeerImpl);
 			Peer peerLocal = convTie._this(orb);
 
 			// On enregistre le client
 
-			easyNaming.rebind_from_string("/talk/" + userName, peerLocal);
+			mEasyNaming.rebind_from_string("/talk/" + mUserName, peerLocal);
 
 			setTitle("List Users");
 			this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -111,9 +111,9 @@ public class ListUsers extends JFrame {
 			JButton cmdRefresh = new JButton("Refresh");
 			getContentPane().add(cmdRefresh, BorderLayout.NORTH);
 
-			list = new JList();
-			list.addMouseListener(new UserMouseListener());
-			getContentPane().add(list, BorderLayout.CENTER);
+			mList = new JList();
+			mList.addMouseListener(new UserMouseListener());
+			getContentPane().add(mList, BorderLayout.CENTER);
 			this.setSize(new Dimension(400, 600));
 			ActionListener refreshAction = new ActionListener() {
 				@Override
@@ -135,11 +135,11 @@ public class ListUsers extends JFrame {
 		try {
 			DefaultListModel nLlistModel = new DefaultListModel();
 
-			for (String nom : easyNaming.list_from_string("/talk",
+			for (String nom : mEasyNaming.list_from_string("/talk",
 					50)) {
 				nLlistModel.addElement(nom);
 			}
-			list.setModel(nLlistModel);
+			mList.setModel(nLlistModel);
 		} catch (Exception e1) {
 			e1.printStackTrace();
 		}
@@ -155,7 +155,7 @@ public class ListUsers extends JFrame {
 		@Override
 		public void windowClosing(WindowEvent e) {
 			try {
-				easyNaming.unbind_from_string("/talk/" + userName);
+				mEasyNaming.unbind_from_string("/talk/" + mUserName);
 			} catch (Exception e1) {
 				e1.printStackTrace();
 			}
@@ -215,7 +215,7 @@ public class ListUsers extends JFrame {
 
 				org.omg.CORBA.Object objDistant = null;
 				try {
-					objDistant = easyNaming
+					objDistant = mEasyNaming
 							.resolve_from_string("/talk/"
 									+ correspondant);
 				} catch (Exception e1) {
@@ -224,27 +224,26 @@ public class ListUsers extends JFrame {
 				Peer peerDistant = PeerHelper.narrow(objDistant);
 				String mytalkIor = "";
 
-				if (peerImpl.getMapConv().containsKey(correspondant)) {
-					mytalkIor = peerImpl.getMapConv()
+				if (mPeerImpl.getMapConv().containsKey(correspondant)) {
+					mytalkIor = mPeerImpl.getMapConv()
 							.get(correspondant).getMonIOR();
 				} else {
-					nbConv++; // on incremente le nombre de
+					mConversationNumber++; // on incremente le nombre de
 								// conversations
 
 					MessageComponent mesConv = new MessageComponent();
-					TalkImpl talkImpl = new TalkImpl(correspondant,
-							peerImpl, mesConv);
+					TalkImpl talkImpl = new TalkImpl(correspondant, mesConv);
 					TalkPOATie talkTie = new TalkPOATie(talkImpl);
 					Talk talkLocal = talkTie._this(orb);
 					mytalkIor = orb.object_to_string(talkLocal);
 
 					Conversation cor = new Conversation(null,
-							mytalkIor, nbConv);
+							mytalkIor, mConversationNumber);
 
-					peerImpl.getMapConv().put(correspondant, cor);
+					mPeerImpl.getMapConv().put(correspondant, cor);
 				}
-				peerDistant.requestTalk(nbConv, correspondant,
-						userName, mytalkIor);
+				peerDistant.requestTalk(mConversationNumber, correspondant,
+						mUserName, mytalkIor);
 
 			}
 

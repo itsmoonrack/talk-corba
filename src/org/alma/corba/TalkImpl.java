@@ -10,24 +10,24 @@ import MTalk.TalkOperations;
 
 public class TalkImpl implements TalkOperations {
 
-	private String userName;
-	private MessageComponent conv;
+	private String mUserName;
+	private MessageComponent mMessageComp;
 
-	public TalkImpl(String userName, PeerImpl peer, MessageComponent conv) {
-		this.userName = userName;
-		this.conv = conv;
+	public TalkImpl(String userName, MessageComponent conv) {
+		this.mUserName = userName;
+		this.mMessageComp = conv;
 	}
 
 	@Override
 	public void accept(short numConvSideB, final short numConvSideA,
 			final String talkIor) {
 		JOptionPane.showMessageDialog(null, "Nouvelle conversation avec "
-				+ userName);
+				+ mUserName);
 
 		SwingUtilities.invokeLater(new Runnable() {
 			@Override
 			public void run() {
-				new SwingClient(conv, talkIor, numConvSideA).setVisible(true);
+				new SwingClient(mMessageComp, talkIor, numConvSideA).setVisible(true);
 			}
 		});
 	}
@@ -35,18 +35,18 @@ public class TalkImpl implements TalkOperations {
 	@Override
 	public void deny(short numConvSideA) {
 		JOptionPane.showMessageDialog(null, "Conversation refusée avec "
-				+ userName);
+				+ mUserName);
 	}
 
 	@Override
 	public void talk(short numConvYourSide, String message) {
 		// on ecrit sur le textarea
-		conv.addMessage(userName, message);
+		mMessageComp.addMessage(mUserName, message);
 	}
 
 	@Override
 	public void stop(short numConvYourSide) {
-		JOptionPane.showInputDialog("Conversation refusée avec " + userName);
+		JOptionPane.showInputDialog("Conversation refusée avec " + mUserName);
 
 	}
 

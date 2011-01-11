@@ -102,7 +102,7 @@ public class SwingClient extends JFrame {
 			conv.addMessage("moi", message);
 			textArea.setText("");
 
-			final ORB orb = PeerImpl.orb;
+			final ORB orb = PeerImpl.sORB;
 
 			org.omg.CORBA.Object obj = orb.string_to_object(sontTalkIor);
 			Talk talkDistant = TalkHelper.narrow(obj);
