@@ -9,6 +9,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -27,20 +29,24 @@ import MTalk.TalkHelper;
 
 public class SwingClient extends JFrame {
 	private static final long serialVersionUID = 1L;
-	private final JTextArea textArea ;
-	private final  MessageComponent conv;
-	private String sontTalkIor;
-	private Short numConvSideA;
+	private final JTextArea mChatArea;
+	private final MessageComponent mConversation;
+	private Talk mTalkDistant;
+	private Short mConversationNumber;
 
-	public SwingClient(MessageComponent conv, String sontTalkIor,
+	public SwingClient(MessageComponent messageComp, String peerTalkIor,
 			short numConvSideA) {
 		setTitle("Talk : ");
-		this.conv = conv;
-		this.sontTalkIor = sontTalkIor;
-		this.numConvSideA = numConvSideA;
+		this.mConversation = messageComp;
+		this.mConversationNumber = numConvSideA;
 		this.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
 		this.getContentPane().setLayout(new BorderLayout(0, 0));
 		this.setSize(new Dimension(800, 600));
+
+		final ORB orb = PeerImpl.sORB;
+
+		org.omg.CORBA.Object obj = orb.string_to_object(peerTalkIor);
+		mTalkDistant = TalkHelper.narrow(obj);
 
 		// Top
 		JPanel topPanel = new JPanel();
@@ -55,19 +61,19 @@ public class SwingClient extends JFrame {
 		topPanel.add(labelNickname);
 
 		this.getContentPane().add(topPanel, BorderLayout.NORTH);
-		this.getContentPane().add(conv, BorderLayout.CENTER);
+		this.getContentPane().add(messageComp, BorderLayout.CENTER);
 
 		// Bottom
 		JPanel bottomPanel = new JPanel();
 		bottomPanel.setBorder(new LineBorder(new Color(0, 0, 0), 2, true));
 		bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.X_AXIS));
 
-		textArea = new JTextArea();
-		textArea.setColumns(1);
-		textArea.setRows(1);
-		textArea.setAutoscrolls(true);
-		bottomPanel.add(textArea);
-		textArea.addKeyListener(new KeyListener() {
+		mChatArea = new JTextArea();
+		mChatArea.setColumns(1);
+		mChatArea.setRows(1);
+		mChatArea.setAutoscrolls(true);
+		bottomPanel.add(mChatArea);
+		mChatArea.addKeyListener(new KeyListener() {
 			@Override
 			public void keyTyped(KeyEvent arg0) {
 			}
@@ -79,7 +85,7 @@ public class SwingClient extends JFrame {
 			@Override
 			public void keyPressed(KeyEvent arg0) {
 				if (arg0.getKeyCode() == 10) {// EnterKey
-					sendMessage(textArea.getText());
+					sendMessage(mChatArea.getText());
 				}
 			}
 		});
@@ -88,26 +94,67 @@ public class SwingClient extends JFrame {
 		sendButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				sendMessage(textArea.getText());
+				sendMessage(mChatArea.getText());
 			}
 		});
 		bottomPanel.add(sendButton);
 		this.getContentPane().add(bottomPanel, BorderLayout.SOUTH);
-
+		
+		addWindowListener(new SwingClientWindowListener());
 	}
 
-	private void sendMessage(String message){
-		if (!message.equals("")){
-			conv.addMessage("Moi", message);
-			textArea.setText("");
+	private void sendMessage(String message) {
+		if (!message.equals("")) {
+			mConversation.addMessage("Moi", message);
+			mChatArea.setText("");
 
-			final ORB orb = PeerImpl.sORB;
-
-			org.omg.CORBA.Object obj = orb.string_to_object(sontTalkIor);
-			Talk talkDistant = TalkHelper.narrow(obj);
-
-			talkDistant.talk(numConvSideA, message);
-
+			mTalkDistant.talk(mConversationNumber, message);
 		}
+	}
+	
+	private class SwingClientWindowListener implements WindowListener {
+
+		@Override
+		public void windowOpened(WindowEvent e) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void windowClosing(WindowEvent e) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void windowClosed(WindowEvent e) {
+			// TODO Auto-generated method stub
+			mTalkDistant.stop(mConversationNumber);
+		}
+
+		@Override
+		public void windowIconified(WindowEvent e) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void windowDeiconified(WindowEvent e) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void windowActivated(WindowEvent e) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void windowDeactivated(WindowEvent e) {
+			// TODO Auto-generated method stub
+			
+		}
+		
 	}
 }

@@ -46,8 +46,7 @@ public class TalkImpl implements TalkOperations {
 
 	@Override
 	public void stop(short numConvYourSide) {
-		JOptionPane.showInputDialog("Conversation refusée avec " + mUserName);
-
+		mMessageComp.addMessage(mUserName, "à fermé la fenêtre de conversation.");
 	}
 
 }
