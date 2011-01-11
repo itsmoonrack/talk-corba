@@ -21,10 +21,8 @@ import javax.swing.Timer;
 
 import lib.EasyNaming;
 
-import org.alma.corba.Conversation;
 import org.alma.corba.PeerImpl;
 import org.alma.corba.TalkImpl;
-import org.alma.corba.modele.MessageComponent;
 import org.omg.CORBA.ORB;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
@@ -47,7 +45,7 @@ public class ListUsers extends JFrame {
 	private Short mConversationNumber = 0;
 
 	private EasyNaming mEasyNaming;
-	private ORB orb;
+	private ORB mORB;
 
 	public ListUsers(String[] args) {
 		// Ajout d'un listener qui permet deconnecter l'user du service de
@@ -55,7 +53,7 @@ public class ListUsers extends JFrame {
 		this.addWindowListener(new ListUserWindowListener());
 
 		try {
-			orb = ORB.init(args, null);
+			mORB = ORB.init(args, null);
 			mUserName = JOptionPane.showInputDialog(null, "Nom d'utilisateur?",
 					"User");
 
@@ -63,7 +61,7 @@ public class ListUsers extends JFrame {
 			// Deploiement du RootPOA
 			org.omg.CORBA.Object obj = null;
 
-			obj = orb.resolve_initial_references("RootPOA");
+			obj = mORB.resolve_initial_references("RootPOA");
 
 			POA rootPOA = POAHelper.narrow(obj);
 			final POAManager manager = rootPOA.the_POAManager();
@@ -78,7 +76,7 @@ public class ListUsers extends JFrame {
 
 			ior = inFromUserFile.readLine();
 
-			mEasyNaming = new EasyNaming(orb, ior);
+			mEasyNaming = new EasyNaming(mORB, ior);
 
 			// On met le orb.run() dans un thread, car il est bloquant
 			Runnable r = new Runnable() {
@@ -88,7 +86,7 @@ public class ListUsers extends JFrame {
 					} catch (AdapterInactive e) {
 						e.printStackTrace();
 					}
-					orb.run();
+					mORB.run();
 				}
 			};
 
@@ -96,9 +94,9 @@ public class ListUsers extends JFrame {
 			runOrb.start();
 
 			// Creation du peer local
-			mPeerImpl = new PeerImpl(mUserName, orb);
+			mPeerImpl = new PeerImpl(mORB, mUserName);
 			PeerPOATie convTie = new PeerPOATie(mPeerImpl);
-			Peer peerLocal = convTie._this(orb);
+			Peer peerLocal = convTie._this(mORB);
 
 			// On enregistre le client
 
@@ -223,28 +221,22 @@ public class ListUsers extends JFrame {
 					e1.printStackTrace();
 				}
 				Peer peerDistant = PeerHelper.narrow(objDistant);
-				String mytalkIor = "";
+				TalkImpl talkImpl = null;
 
-				if (mPeerImpl.getMapConv().containsKey(correspondant)) {
-					mytalkIor = mPeerImpl.getMapConv()
-							.get(correspondant).getMonIOR();
+				if (mPeerImpl.hasCorrespondant(correspondant)) {
+					talkImpl = mPeerImpl.getCorrespondant(correspondant);
 				} else {
 					mConversationNumber++; // on incremente le nombre de
 								// conversations
-
-					MessageComponent mesConv = new MessageComponent();
-					TalkImpl talkImpl = new TalkImpl(correspondant, mesConv);
-					TalkPOATie talkTie = new TalkPOATie(talkImpl);
-					Talk talkLocal = talkTie._this(orb);
-					mytalkIor = orb.object_to_string(talkLocal);
-
-					Conversation cor = new Conversation(null,
-							mytalkIor, mConversationNumber);
-
-					mPeerImpl.getMapConv().put(correspondant, cor);
+					
+					talkImpl = mPeerImpl.createCorrespondant(correspondant);
 				}
+				
+				final TalkPOATie talkTie = new TalkPOATie(talkImpl);
+				final Talk talkLocal = talkTie._this(mORB);
+				final String myTalkIOR = mORB.object_to_string(talkLocal);
 				peerDistant.requestTalk(mConversationNumber, correspondant,
-						mUserName, mytalkIor);
+						mUserName, myTalkIOR);
 
 			}
 

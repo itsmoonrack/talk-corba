@@ -14,48 +14,41 @@ import org.omg.CORBA.ORB;
 import MTalk.PeerOperations;
 import MTalk.Talk;
 import MTalk.TalkHelper;
+import MTalk.TalkOperations;
 import MTalk.TalkPOATie;
 
 public class PeerImpl implements PeerOperations {
 
 	private String mUserName = "";
-	public static ORB sORB;
+	private ORB mORB;
 
-	private Map<String, Conversation> mConversationMap;
+	private Map<String, TalkImpl> mTalkMap;
 	private short mConversationNumber = 0;
 
-	public PeerImpl(String pseudo, ORB myORB) {
-		this.mUserName = pseudo;
-		this.mConversationMap = new HashMap<String, Conversation>();
-		sORB = myORB;
-	}
-
-	public Map<String, Conversation> getMapConv() {
-		return mConversationMap;
-	}
-
-	// Tue la conversation numConv
-	public void killConv(String correspondant) {
-
-		Conversation conv = mConversationMap.get(correspondant);
-
-		org.omg.CORBA.Object obj = sORB.string_to_object(conv.getSonIOR());
-		Talk talk = TalkHelper.narrow(obj);
-
-		talk.stop(conv.getConvNum());
-
-		obj = sORB.string_to_object(conv.getMonIOR());
-		talk = TalkHelper.narrow(obj);
-
-		talk.stop(conv.getConvNum());
+	// ORB, My UserName
+	public PeerImpl(ORB orb, String username) {
+		this.mUserName = username;
+		this.mTalkMap = new HashMap<String, TalkImpl>();
+		this.mORB = orb;
 	}
 
 	// Tue toutes les conversations
 	public void killAll() {
-		for (Iterator<String> i = mConversationMap.keySet().iterator(); i.hasNext();) {
-			String key = i.next();
-			killConv(key);
+		for (Iterator<String> i = mTalkMap.keySet().iterator(); i.hasNext();) {
+			mTalkMap.get(i.next()).stop((short)0);
 		}
+	}
+	
+	public boolean hasCorrespondant(String username) {
+		return mTalkMap.containsKey(username);
+	}
+	public TalkImpl getCorrespondant(String username) {
+		return mTalkMap.get(username);
+	}
+	public TalkImpl createCorrespondant(String username) {
+		final TalkImpl talk = new TalkImpl(mORB, mUserName);
+		mTalkMap.put(username, talk);
+		return talk;
 	}
 
 	@Override
@@ -72,45 +65,43 @@ public class PeerImpl implements PeerOperations {
 				int answer = JOptionPane.showConfirmDialog(null,
 						"Ouvrir une conversation avec " + sonPseudo,
 						"Acceptation : " + mUserName, JOptionPane.YES_NO_OPTION);
-				org.omg.CORBA.Object obj = sORB.string_to_object(sonTalkIOR);
+				org.omg.CORBA.Object obj = mORB.string_to_object(sonTalkIOR);
 				Talk talkDistant = TalkHelper.narrow(obj);
 
 				// SI l'user accepte la conversation
 				if (answer == JOptionPane.YES_OPTION) {
 					// on test si on a déjà une conversation avec cet
 					// utilisateur
-					String monTalkIOR = null;
-					if (mConversationMap.containsKey(sonPseudo)) {
-						monTalkIOR = mConversationMap.get(sonPseudo).getMonIOR();
-					}
-
-					Talk monTalk = null;
 					final MessageComponent messageComp = new MessageComponent();
-
-					if (monTalkIOR == null) { // Donc on ne le connait pas!
-						// on cree un nouveau talk
-						TalkImpl conv = new TalkImpl(sonPseudo,	messageComp);
-						TalkPOATie convTie = new TalkPOATie(conv);
-						monTalk = convTie._this(sORB);
-						monTalkIOR = sORB.object_to_string(monTalk);
+					TalkOperations talk = null;
+					
+					if (mTalkMap.containsKey(sonPseudo)) {
+						talk = mTalkMap.get(sonPseudo);
+					} else {
+						// on créer un nouveau talk
+						talk = new TalkImpl(mORB, mUserName);
 					}
+					
+					TalkPOATie convTie = new TalkPOATie(talk);
+					Talk monTalk = convTie._this(mORB);
+					String monTalkIOR = mORB.object_to_string(monTalk);
 
 					// On valide aupres du talk distant
 					talkDistant.accept(mConversationNumber, numConvSideA, monTalkIOR);
 
 					// On enregistre les donnees liees a la conversation
-					mConversationMap.put(sonPseudo, new Conversation(sonTalkIOR,
-							monTalkIOR, mConversationNumber));
+					mTalkMap.put(sonPseudo, new TalkImpl(mORB, mUserName)); // TODO: check
 
 					// System.out.println(sonPseudo +
 					// " debute avec vous la conversation " + convIncr);
 					mConversationNumber++;
 
+					final TalkOperations finalTalk = talk;
 					// On ouvre une une new fenetre
 					SwingUtilities.invokeLater(new Runnable() {
 						@Override
 						public void run() {
-							new SwingClient(messageComp, sonTalkIOR, mConversationNumber)
+							new SwingClient(messageComp, finalTalk, mConversationNumber)
 									.setVisible(true);
 						}
 					});

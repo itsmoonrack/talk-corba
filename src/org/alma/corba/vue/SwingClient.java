@@ -20,33 +20,27 @@ import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.border.LineBorder;
 
-import org.alma.corba.PeerImpl;
 import org.alma.corba.modele.MessageComponent;
-import org.omg.CORBA.ORB;
 
-import MTalk.Talk;
-import MTalk.TalkHelper;
+import MTalk.TalkOperations;
 
 public class SwingClient extends JFrame {
 	private static final long serialVersionUID = 1L;
 	private final JTextArea mChatArea;
 	private final MessageComponent mConversation;
-	private Talk mTalkDistant;
-	private Short mConversationNumber;
+	private TalkOperations mTalkDistant;
+	private Short mConversationNumberDistant;
 
-	public SwingClient(MessageComponent messageComp, String peerTalkIor,
+	public SwingClient(MessageComponent messageComp, TalkOperations talkDistant,
 			short numConvSideA) {
 		setTitle("Talk : ");
 		this.mConversation = messageComp;
-		this.mConversationNumber = numConvSideA;
+		this.mTalkDistant = talkDistant;
+		this.mConversationNumberDistant = numConvSideA;
+		
 		this.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
 		this.getContentPane().setLayout(new BorderLayout(0, 0));
 		this.setSize(new Dimension(800, 600));
-
-		final ORB orb = PeerImpl.sORB;
-
-		org.omg.CORBA.Object obj = orb.string_to_object(peerTalkIor);
-		mTalkDistant = TalkHelper.narrow(obj);
 
 		// Top
 		JPanel topPanel = new JPanel();
@@ -108,7 +102,7 @@ public class SwingClient extends JFrame {
 			mConversation.addMessage("Moi", message);
 			mChatArea.setText("");
 
-			mTalkDistant.talk(mConversationNumber, message);
+			mTalkDistant.talk(mConversationNumberDistant, message);
 		}
 	}
 	
@@ -120,7 +114,7 @@ public class SwingClient extends JFrame {
 
 		@Override
 		public void windowClosing(WindowEvent e) {
-			mTalkDistant.stop(mConversationNumber);
+			mTalkDistant.stop(mConversationNumberDistant);
 		}
 
 		@Override
