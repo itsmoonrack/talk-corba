@@ -9,8 +9,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -21,13 +19,11 @@ import javax.swing.JTextArea;
 import javax.swing.border.LineBorder;
 
 import org.alma.corba.PeerImpl;
-import org.alma.corba.controler.Controler;
 import org.alma.corba.modele.MessageComponent;
 import org.omg.CORBA.ORB;
 
 import MTalk.Talk;
 import MTalk.TalkHelper;
-
 
 public class SwingClient extends JFrame {
 	private static final long serialVersionUID = 1L;
@@ -36,18 +32,19 @@ public class SwingClient extends JFrame {
 	private String sontTalkIor;
 	private Short numConvSideA;
 
-	public SwingClient(MessageComponent conv, String sontTalkIor,short numConvSideA) {
+	public SwingClient(MessageComponent conv, String sontTalkIor,
+			short numConvSideA) {
 		setTitle("Talk : ");
 		this.conv = conv;
 		this.sontTalkIor = sontTalkIor;
 		this.numConvSideA = numConvSideA;
 		this.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
 		this.getContentPane().setLayout(new BorderLayout(0, 0));
-		this.setSize(new Dimension(800,600));
+		this.setSize(new Dimension(800, 600));
 
-		//Top
+		// Top
 		JPanel topPanel = new JPanel();
-		topPanel.setBackground(new Color(115,166,255));
+		topPanel.setBackground(new Color(115, 166, 255));
 		FlowLayout flowLayout = (FlowLayout) topPanel.getLayout();
 		flowLayout.setAlignment(FlowLayout.LEFT);
 		flowLayout.setVgap(7);
@@ -56,16 +53,15 @@ public class SwingClient extends JFrame {
 		labelNickname.setForeground(Color.WHITE);
 		labelNickname.setText("Talk");
 		topPanel.add(labelNickname);
-		
+
 		this.getContentPane().add(topPanel, BorderLayout.NORTH);
 		this.getContentPane().add(conv, BorderLayout.CENTER);
-		
-		
-		//Bottom
+
+		// Bottom
 		JPanel bottomPanel = new JPanel();
 		bottomPanel.setBorder(new LineBorder(new Color(0, 0, 0), 2, true));
 		bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.X_AXIS));
-		
+
 		textArea = new JTextArea();
 		textArea.setColumns(1);
 		textArea.setRows(1);
@@ -73,17 +69,21 @@ public class SwingClient extends JFrame {
 		bottomPanel.add(textArea);
 		textArea.addKeyListener(new KeyListener() {
 			@Override
-			public void keyTyped(KeyEvent arg0) {}
+			public void keyTyped(KeyEvent arg0) {
+			}
+
 			@Override
-			public void keyReleased(KeyEvent arg0) {}
+			public void keyReleased(KeyEvent arg0) {
+			}
+
 			@Override
 			public void keyPressed(KeyEvent arg0) {
-				if (arg0.getKeyCode()==10){//EnterKey
+				if (arg0.getKeyCode() == 10) {// EnterKey
 					sendMessage(textArea.getText());
 				}
 			}
 		});
-		
+
 		JButton sendButton = new JButton("Send");
 		sendButton.addActionListener(new ActionListener() {
 			@Override
@@ -91,23 +91,23 @@ public class SwingClient extends JFrame {
 				sendMessage(textArea.getText());
 			}
 		});
-		bottomPanel.add(sendButton);		
+		bottomPanel.add(sendButton);
 		this.getContentPane().add(bottomPanel, BorderLayout.SOUTH);
-		
+
 	}
 
 	private void sendMessage(String message){
 		if (!message.equals("")){
 			conv.addMessage("Moi", message);
 			textArea.setText("");
-			
-			final ORB orb = PeerImpl.orb;
-			
+
+			final ORB orb = PeerImpl.sORB;
+
 			org.omg.CORBA.Object obj = orb.string_to_object(sontTalkIor);
 			Talk talkDistant = TalkHelper.narrow(obj);
 
-			talkDistant.talk(numConvSideA,message);
-			
+			talkDistant.talk(numConvSideA, message);
+
 		}
-	}	
+	}
 }

@@ -3,8 +3,6 @@ package org.alma.corba;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Observable;
-import java.util.Observer;
 
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
@@ -20,111 +18,112 @@ import MTalk.TalkPOATie;
 
 public class PeerImpl implements PeerOperations {
 
+	private String mUserName = "";
+	public static ORB sORB;
 
-	private String pseudo = "";
-	public static ORB orb;
+	private Map<String, Conversation> mConversationMap;
+	private short mConversationNumber = 0;
 
-	private Map<String,Conversation> mapConvs;
-	private PeerImpl getInstance;
-	private short numConv = 0;
-
-	public PeerImpl(String pseudo, ORB orb) {
-		this.pseudo = pseudo;
-		this.mapConvs = new HashMap<String, Conversation>();
-		this.orb = orb;
-
-		getInstance = this;
+	public PeerImpl(String pseudo, ORB myORB) {
+		this.mUserName = pseudo;
+		this.mConversationMap = new HashMap<String, Conversation>();
+		sORB = myORB;
 	}
 
 	public Map<String, Conversation> getMapConv() {
-		return mapConvs;
+		return mConversationMap;
 	}
 
 	// Tue la conversation numConv
-	public void killConv(String correspondant){
+	public void killConv(String correspondant) {
 
-		Conversation conv = mapConvs.get(correspondant);
+		Conversation conv = mConversationMap.get(correspondant);
 
-		org.omg.CORBA.Object obj = orb.string_to_object(conv.getSonIOR());
+		org.omg.CORBA.Object obj = sORB.string_to_object(conv.getSonIOR());
 		Talk talk = TalkHelper.narrow(obj);
 
 		talk.stop(conv.getConvNum());
 
-		obj = orb.string_to_object(conv.getMonIOR());
+		obj = sORB.string_to_object(conv.getMonIOR());
 		talk = TalkHelper.narrow(obj);
 
-		talk.stop(conv.getConvNum());	
+		talk.stop(conv.getConvNum());
 	}
 
 	// Tue toutes les conversations
-	public void killAll(){
-		for (Iterator<String> i = mapConvs.keySet().iterator() ; i.hasNext() ; ){
+	public void killAll() {
+		for (Iterator<String> i = mConversationMap.keySet().iterator(); i.hasNext();) {
 			String key = i.next();
-			killConv(key);  
+			killConv(key);
 		}
 	}
 
 	@Override
 	public String getInformations() {
-		return pseudo;
+		return mUserName;
 	}
 
 	@Override
-	public void requestTalk(final short numConvSideA, final String subject,	final String sonPseudo, final String sonTalkIOR) {
+	public void requestTalk(final short numConvSideA, final String subject,
+			final String sonPseudo, final String sonTalkIOR) {
 
-		Runnable r = new Runnable(){
-			public void run(){
-				int answer = JOptionPane.showConfirmDialog(null,"Ouvrir une conversation avec " + sonPseudo ,"Acceptation : " + pseudo,  JOptionPane.YES_NO_OPTION);
-				org.omg.CORBA.Object obj = orb.string_to_object(sonTalkIOR);
+		Runnable r = new Runnable() {
+			public void run() {
+				int answer = JOptionPane.showConfirmDialog(null,
+						"Ouvrir une conversation avec " + sonPseudo,
+						"Acceptation : " + mUserName, JOptionPane.YES_NO_OPTION);
+				org.omg.CORBA.Object obj = sORB.string_to_object(sonTalkIOR);
 				Talk talkDistant = TalkHelper.narrow(obj);
 
-				//SI l'user accepte la conversation
-				if(answer == JOptionPane.YES_OPTION){
-					//on test si on a dÈj‡ une conversation avec cet utilisateur
+				// SI l'user accepte la conversation
+				if (answer == JOptionPane.YES_OPTION) {
+					// on test si on a d√©j√† une conversation avec cet
+					// utilisateur
 					String monTalkIOR = null;
-					if (mapConvs.containsKey(sonPseudo)){
-						monTalkIOR = mapConvs.get(sonPseudo).getMonIOR();
+					if (mConversationMap.containsKey(sonPseudo)) {
+						monTalkIOR = mConversationMap.get(sonPseudo).getMonIOR();
 					}
-					
+
 					Talk monTalk = null;
-					final MessageComponent mesConv = new MessageComponent();
-					
-					if(monTalkIOR == null){ // Donc on ne le connait pas!
-						//on cree un nouveau talk
-						TalkImpl conv = new TalkImpl(sonPseudo, getInstance,mesConv);
+					final MessageComponent messageComp = new MessageComponent();
+
+					if (monTalkIOR == null) { // Donc on ne le connait pas!
+						// on cree un nouveau talk
+						TalkImpl conv = new TalkImpl(sonPseudo,	messageComp);
 						TalkPOATie convTie = new TalkPOATie(conv);
-						monTalk = convTie._this(orb);
-						monTalkIOR = orb.object_to_string(monTalk);	
+						monTalk = convTie._this(sORB);
+						monTalkIOR = sORB.object_to_string(monTalk);
 					}
 
 					// On valide aupres du talk distant
-					talkDistant.accept(numConv, numConvSideA, monTalkIOR);
+					talkDistant.accept(mConversationNumber, numConvSideA, monTalkIOR);
 
 					// On enregistre les donnees liees a la conversation
-					mapConvs.put(sonPseudo, new Conversation(sonTalkIOR, monTalkIOR,numConv));
+					mConversationMap.put(sonPseudo, new Conversation(sonTalkIOR,
+							monTalkIOR, mConversationNumber));
 
-//					System.out.println(sonPseudo + " debute avec vous la conversation " + convIncr);
-					numConv++;
-					
-					//On ouvre une une new fenetre
+					// System.out.println(sonPseudo +
+					// " debute avec vous la conversation " + convIncr);
+					mConversationNumber++;
+
+					// On ouvre une une new fenetre
 					SwingUtilities.invokeLater(new Runnable() {
 						@Override
 						public void run() {
-							new SwingClient(mesConv,sonTalkIOR,numConv).setVisible(true);
+							new SwingClient(messageComp, sonTalkIOR, mConversationNumber)
+									.setVisible(true);
 						}
 					});
-					
 
-				}else{
-					//L'user a refusÈ la conversation, on notifie l'utilisateur
+				} else {
+					// L'user a refus√© la conversation, on notifie l'utilisateur
 					talkDistant.deny(numConvSideA);
-				}	
-
+				}
 
 			}
 		};
 
-		Thread runOrb=new Thread(r);
+		Thread runOrb = new Thread(r);
 		runOrb.start();
 
 	}

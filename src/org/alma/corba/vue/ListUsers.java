@@ -10,7 +10,6 @@ import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStreamReader;
 
 import javax.swing.DefaultListModel;
@@ -21,18 +20,12 @@ import javax.swing.JOptionPane;
 import javax.swing.Timer;
 
 import lib.EasyNaming;
-import lib.InvalidRootContextException;
 
 import org.alma.corba.Conversation;
 import org.alma.corba.PeerImpl;
 import org.alma.corba.TalkImpl;
 import org.alma.corba.modele.MessageComponent;
 import org.omg.CORBA.ORB;
-import org.omg.CORBA.SystemException;
-import org.omg.CosNaming.NamingContextPackage.AlreadyBound;
-import org.omg.CosNaming.NamingContextPackage.CannotProceed;
-import org.omg.CosNaming.NamingContextPackage.InvalidName;
-import org.omg.CosNaming.NamingContextPackage.NotFound;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 import org.omg.PortableServer.POAManager;
@@ -47,58 +40,26 @@ import MTalk.TalkPOATie;
 public class ListUsers extends JFrame {
 	private static final long serialVersionUID = 1L;
 
-	private DefaultListModel listModel;
-	private JList list;
-	private String userName;
-	private PeerImpl peerImpl;
+	private JList mList;
+	private String mUserName;
+	private PeerImpl mPeerImpl;
 
-	private Short nbConv = 0;
-	
-	private EasyNaming easyNaming;
-	
+	private Short mConversationNumber = 0;
+
+	private EasyNaming mEasyNaming;
+	private ORB orb;
+
 	public ListUsers(String[] args) {
-//		Ajout d'un listener qui permet deconnecter l'user du service de nomage.
-		this.addWindowListener(new WindowListener() {
-			@Override
-			public void windowOpened(WindowEvent e) {}
+		// Ajout d'un listener qui permet deconnecter l'user du service de
+		// nomage.
+		this.addWindowListener(new ListUserWindowListener());
 
-			@Override
-			public void windowClosing(WindowEvent e) {
-				try {
-					easyNaming.unbind_from_string("/talk/"+userName);
-				} catch (InvalidName e1) {
-					e1.printStackTrace();
-				} catch (NotFound e1) {
-					e1.printStackTrace();
-				} catch (CannotProceed e1) {
-					e1.printStackTrace();
-				} catch (SystemException e1) {
-					e1.printStackTrace();
-				} catch (InvalidRootContextException e1) {
-					e1.printStackTrace();
-				}
-			}
+		try {
+			orb = ORB.init(args, null);
+			mUserName = JOptionPane.showInputDialog(null, "Nom d'utilisateur?",
+					"User");
 
-			@Override
-			public void windowClosed(WindowEvent e) {}
-			@Override
-			public void windowIconified(WindowEvent e) {}
-
-			@Override
-			public void windowDeiconified(WindowEvent e) {}
-
-			@Override
-			public void windowActivated(WindowEvent e) {}
-
-			@Override
-			public void windowDeactivated(WindowEvent e) {}
-		});
-
-		try{
-			final ORB orb = ORB.init(args,null);
-			userName = JOptionPane.showInputDialog(null, "Nom d'utilisateur?", "User");
-
-			// On enregistre l'utilisateur	
+			// On enregistre l'utilisateur
 			// Deploiement du RootPOA
 			org.omg.CORBA.Object obj = null;
 
@@ -106,41 +67,43 @@ public class ListUsers extends JFrame {
 
 			POA rootPOA = POAHelper.narrow(obj);
 			final POAManager manager = rootPOA.the_POAManager();
-			
-			//Fichier contenant l'IOR du naming service
+
 			String fichier = "iorNammingService.ref";
 			BufferedReader inFromUserFile = null;
 
-			//on lit l'IOR du naming service dans le fichier
-			inFromUserFile = new BufferedReader(new InputStreamReader(new FileInputStream(fichier)));
-			String ior = null;
-			ior = inFromUserFile.readLine();
-			//on instancie le service de nommmage avec le bon IOR et mon ORB  
-			easyNaming = new EasyNaming(orb, ior);
+			inFromUserFile = new BufferedReader(new InputStreamReader(
+					new FileInputStream(fichier)));
 
-			// On met le orb.run() dans un thread, car il est bloquant 
+			String ior = null;
+
+			ior = inFromUserFile.readLine();
+
+			mEasyNaming = new EasyNaming(orb, ior);
+
+			// On met le orb.run() dans un thread, car il est bloquant
 			Runnable r = new Runnable() {
-				public void run(){
+				public void run() {
 					try {
 						manager.activate();
 					} catch (AdapterInactive e) {
 						e.printStackTrace();
 					}
-					orb.run();		    	
+					orb.run();
 				}
 			};
-			Thread runOrb=new Thread(r);
+
+			Thread runOrb = new Thread(r);
 			runOrb.start();
 
-			// Creation du mon peer
-			peerImpl = new PeerImpl(userName, orb);
-			PeerPOATie convTie = new PeerPOATie(peerImpl);
-			Peer monPeer = convTie._this(orb);
+			// Creation du peer local
+			mPeerImpl = new PeerImpl(mUserName, orb);
+			PeerPOATie convTie = new PeerPOATie(mPeerImpl);
+			Peer peerLocal = convTie._this(orb);
 
-			// On enregistre le client sur le naming service
-			easyNaming.rebind_from_string("/talk/" + userName, monPeer);
+			// On enregistre le client
 
-			//Creation de la fenetre 
+			mEasyNaming.rebind_from_string("/talk/" + mUserName, peerLocal);
+
 			setTitle("List Users");
 			this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 			this.getContentPane().setLayout(new BorderLayout(0, 0));
@@ -148,109 +111,142 @@ public class ListUsers extends JFrame {
 			JButton cmdRefresh = new JButton("Refresh");
 			getContentPane().add(cmdRefresh, BorderLayout.NORTH);
 
-			list = new JList();
-			list.addMouseListener(new MouseListener() {
-				@Override
-				public void mouseReleased(MouseEvent e) {}
-				@Override
-				public void mousePressed(MouseEvent e) {}
-				@Override
-				public void mouseExited(MouseEvent e) {}
-				@Override
-				public void mouseEntered(MouseEvent e) {}
-				@Override
-				public void mouseClicked(MouseEvent e) {
-					//On effectue une requete sur l'utilisateur double clické de la liste
-					JList list = (JList)e.getSource();
-					if (e.getClickCount() == 2) { // Double click
-						list.getSelectedIndex();
-						String correspondant = (String)list.getModel().getElementAt(list.getSelectedIndex());
-						
-						org.omg.CORBA.Object objDistant = null;
-						try {
-							objDistant = easyNaming.resolve_from_string("/talk/" + correspondant);
-						} catch (InvalidName e1) {
-							e1.printStackTrace();
-						} catch (NotFound e1) {
-							e1.printStackTrace();
-						} catch (CannotProceed e1) {
-							e1.printStackTrace();
-						} catch (SystemException e1) {
-							e1.printStackTrace();
-						} catch (InvalidRootContextException e1) {
-							e1.printStackTrace();
-						}
-						Peer peerDistant = PeerHelper.narrow(objDistant);
-						String mytalkIor = "";
-
-						if (peerImpl.getMapConv().containsKey(correspondant)){
-							mytalkIor = peerImpl.getMapConv().get(correspondant).getMonIOR();
-						}else{
-							nbConv ++; // on incremente le nombre de conversations
-
-							MessageComponent mesConv = new MessageComponent();
-							TalkImpl talkImpl = new TalkImpl(correspondant, peerImpl,mesConv);
-							TalkPOATie talkTie = new TalkPOATie(talkImpl);
-							Talk talkLocal = talkTie._this(orb);
-							mytalkIor = orb.object_to_string(talkLocal);
-
-							Conversation cor = new Conversation(null, mytalkIor,nbConv);
-
-							peerImpl.getMapConv().put(correspondant, cor);
-						}
-						peerDistant.requestTalk(nbConv, correspondant, userName, mytalkIor);
-
-					}
-
-
-				}
-			});
-			getContentPane().add(list, BorderLayout.CENTER);
+			mList = new JList();
+			mList.addMouseListener(new UserMouseListener());
+			getContentPane().add(mList, BorderLayout.CENTER);
 			this.setSize(new Dimension(400, 600));
 			ActionListener refreshAction = new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent e) {
-					try {
-						DefaultListModel nLlistModel = new DefaultListModel();
-						//On recupere les 100 users connectés sur /talk du service de nommage
-						for (String nom : easyNaming.list_from_string("/talk", 100)) {
-							nLlistModel.addElement(nom);
-						}
-						list.setModel(nLlistModel);
-					} catch (InvalidName e1) {
-						e1.printStackTrace();
-					} catch (NotFound e1) {
-						e1.printStackTrace();
-					} catch (CannotProceed e1) {
-						e1.printStackTrace();
-					} catch (SystemException e1) {
-						e1.printStackTrace();
-					} catch (InvalidRootContextException e1) {
-						e1.printStackTrace();
-					}
+					refresh();
 				}
 			};
 			cmdRefresh.addActionListener(refreshAction);
-			
 			Timer timer = new Timer(500, refreshAction);
 			timer.start();
 
-		} catch (IOException e1) {
+		} catch (Exception e1) {
 			e1.printStackTrace();
-		} catch (InvalidName e) {
-			e.printStackTrace();
-		} catch (AlreadyBound e) {
-			e.printStackTrace();
-		} catch (CannotProceed e) {
-			e.printStackTrace();
-		} catch (NotFound e) {
-			e.printStackTrace();
-		} catch (SystemException e) {
-			e.printStackTrace();
-		} catch (InvalidRootContextException e) {
-			e.printStackTrace();
-		} catch (org.omg.CORBA.ORBPackage.InvalidName e) {
-			e.printStackTrace();
+		}
+
+	}
+	
+	public void refresh() {
+		try {
+			DefaultListModel nLlistModel = new DefaultListModel();
+
+			for (String nom : mEasyNaming.list_from_string("/talk",
+					50)) {
+				nLlistModel.addElement(nom);
+			}
+			mList.setModel(nLlistModel);
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		}
+	}
+	
+	private class ListUserWindowListener implements WindowListener {
+
+		@Override
+		public void windowOpened(WindowEvent e) {
+			refresh();
+		}
+
+		@Override
+		public void windowClosing(WindowEvent e) {
+			try {
+				mEasyNaming.unbind_from_string("/talk/" + mUserName);
+			} catch (Exception e1) {
+				e1.printStackTrace();
+			}
+		}
+
+		@Override
+		public void windowClosed(WindowEvent e) {
+
+		}
+
+		@Override
+		public void windowIconified(WindowEvent e) {
+
+		}
+
+		@Override
+		public void windowDeiconified(WindowEvent e) {
+
+		}
+
+		@Override
+		public void windowActivated(WindowEvent e) {
+
+		}
+
+		@Override
+		public void windowDeactivated(WindowEvent e) {
+
+		}
+		
+	}
+	
+	private class UserMouseListener implements MouseListener {
+		@Override
+		public void mouseReleased(MouseEvent e) {
+		}
+
+		@Override
+		public void mousePressed(MouseEvent e) {
+		}
+
+		@Override
+		public void mouseExited(MouseEvent e) {
+		}
+
+		@Override
+		public void mouseEntered(MouseEvent e) {
+		}
+
+		@Override
+		public void mouseClicked(MouseEvent e) {
+			JList list = (JList) e.getSource();
+			if (e.getClickCount() == 2) { // Double click
+				list.getSelectedIndex();
+				String correspondant = (String) list.getModel()
+						.getElementAt(list.getSelectedIndex());
+
+				org.omg.CORBA.Object objDistant = null;
+				try {
+					objDistant = mEasyNaming
+							.resolve_from_string("/talk/"
+									+ correspondant);
+				} catch (Exception e1) {
+					e1.printStackTrace();
+				}
+				Peer peerDistant = PeerHelper.narrow(objDistant);
+				String mytalkIor = "";
+
+				if (mPeerImpl.getMapConv().containsKey(correspondant)) {
+					mytalkIor = mPeerImpl.getMapConv()
+							.get(correspondant).getMonIOR();
+				} else {
+					mConversationNumber++; // on incremente le nombre de
+								// conversations
+
+					MessageComponent mesConv = new MessageComponent();
+					TalkImpl talkImpl = new TalkImpl(correspondant, mesConv);
+					TalkPOATie talkTie = new TalkPOATie(talkImpl);
+					Talk talkLocal = talkTie._this(orb);
+					mytalkIor = orb.object_to_string(talkLocal);
+
+					Conversation cor = new Conversation(null,
+							mytalkIor, mConversationNumber);
+
+					mPeerImpl.getMapConv().put(correspondant, cor);
+				}
+				peerDistant.requestTalk(mConversationNumber, correspondant,
+						mUserName, mytalkIor);
+
+			}
+
 		}
 	}
 
