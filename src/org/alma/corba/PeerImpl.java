@@ -92,15 +92,11 @@ public class PeerImpl implements PeerOperations {
 					// On enregistre les donnees liees a la conversation
 					mTalkMap.put(sonPseudo, new TalkImpl(mORB, mUserName)); // TODO: check
 
-					// System.out.println(sonPseudo +
-					// " debute avec vous la conversation " + convIncr);
-					mConversationNumber++;
-
 					// On ouvre une une new fenetre
 					SwingUtilities.invokeLater(new Runnable() {
 						@Override
 						public void run() {
-							new SwingClient(messageComp, monTalk, mConversationNumber)
+							new SwingClient(messageComp, monTalk, mConversationNumber++)
 									.setVisible(true);
 						}
 					});

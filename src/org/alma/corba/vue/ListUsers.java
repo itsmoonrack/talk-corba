@@ -225,19 +225,15 @@ public class ListUsers extends JFrame {
 
 				if (mPeerImpl.hasCorrespondant(correspondant)) {
 					talkImpl = mPeerImpl.getCorrespondant(correspondant);
-				} else {
-					mConversationNumber++; // on incremente le nombre de
-								// conversations
-					
+				} else {					
 					talkImpl = mPeerImpl.createCorrespondant(correspondant);
 				}
-				
 				final TalkPOATie talkTie = new TalkPOATie(talkImpl);
 				final Talk talkLocal = talkTie._this(mORB);
 				final String myTalkIOR = mORB.object_to_string(talkLocal);
-				peerDistant.requestTalk(mConversationNumber, correspondant,
+				peerDistant.requestTalk(mConversationNumber++, "sujet",
 						mUserName, myTalkIOR);
-
+				
 			}
 
 		}

@@ -32,7 +32,7 @@ public class TalkImpl implements TalkOperations {
 			final String talkIor) {
 		JOptionPane.showMessageDialog(null, "Nouvelle conversation avec "
 				+ mUserName);
-		// Création d'une conversation de numéro B.
+		// Création d'une conversation de numéro A.
 		final MessageComponent messageComp = new MessageComponent();
 		mMessageComp.put(numConvSideB, messageComp);
 
