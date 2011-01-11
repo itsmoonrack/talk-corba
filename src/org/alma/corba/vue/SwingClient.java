@@ -9,8 +9,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -21,7 +19,6 @@ import javax.swing.JTextArea;
 import javax.swing.border.LineBorder;
 
 import org.alma.corba.PeerImpl;
-import org.alma.corba.controler.Controler;
 import org.alma.corba.modele.MessageComponent;
 import org.omg.CORBA.ORB;
 
@@ -102,7 +99,7 @@ public class SwingClient extends JFrame {
 
 	private void sendMessage(String message) {
 		if (!message.equals("")) {
-			conv.addMessage(correspondantName, message);
+			conv.addMessage("moi", message);
 			textArea.setText("");
 
 			final ORB orb = PeerImpl.orb;
